@@ -1,0 +1,48 @@
+# Fichiers d'environnement
+.env
+.env.backup
+.env.production
+
+# Dossiers de dépendances
+/vendor/
+/node_modules/
+
+# Fichiers de cache et logs
+*.log
+*.cache
+.phpunit.result.cache
+
+# Fichiers générés par l'éditeur
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+
+# Fichiers personnels
+*.swp
+*.swo
+*~
+
+# Fichiers de configuration locaux
+composer.lock
+package-lock.json
+
+# Fichiers téléchargés
+/public/img/items/*
+!/public/img/items/.gitkeep
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# Fichiers de session et cache
+/storage/sessions/
+/storage/cache/
+
+# Fichiers de base de données
+*.sqlite
+*.sqlite3
+*.db
+
+# Fichiers de sauvegarde
+*.bak
+*.backup 

@@ -1,0 +1,57 @@
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]
+
+# Protection contre l'accès direct aux fichiers .php
+<FilesMatch "\.(php)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Autoriser l'exécution du fichier index.php
+<Files "index.php">
+  Order Allow,Deny
+  Allow from all
+</Files>
+
+# Désactiver l'affichage du contenu des répertoires
+Options -Indexes
+
+# Protéger certains fichiers critiques
+<FilesMatch "^(\.env|composer\.json|composer\.lock)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Protéger le dossier App/ contre l'accès direct
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^App/ - [F,L]
+  RewriteRule ^vendor/ - [F,L]
+  
+  # Rediriger toutes les requêtes vers index.php
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Protection contre les attaques XSS
+<IfModule mod_headers.c>
+  Header set X-XSS-Protection "1; mode=block"
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Content-Security-Policy "default-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com"
+</IfModule>
+
+# Limiter les méthodes HTTP autorisées
+<LimitExcept GET POST>
+  Deny from all
+</LimitExcept>
+
+# Protection contre l'accès aux fichiers sensibles
+<FilesMatch "(^#.*#|\.(bak|config|dist|fla|in[ci]|log|orig|psd|sh|sql|sw[op])|~)$">
+  Order Allow,Deny
+  Deny from all
+  Satisfy All
+</FilesMatch>
