@@ -20,15 +20,15 @@ class DashboardSidebarView {
             <nav class="mt-6 px-4">
                 <div class="space-y-1">
                     <a href="/home" class="group flex items-center px-2 py-3 text-sm font-medium rounded-md hover:bg-white/10 transition-colors">
-                        <span class="material-icons-outlined mr-3 text-white/70 group-hover:text-white">home</span>
+                        <span class="icon-home mr-3 text-white/70 group-hover:text-white"></span>
                         Page d'accueil
                     </a>
                     <a href="/dashboard" class="group flex items-center px-2 py-3 text-sm font-medium rounded-md hover:bg-white/10 transition-colors">
-                        <span class="material-icons-outlined mr-3 text-white/70 group-hover:text-white">dashboard</span>
+                        <span class="icon-dashboard mr-3 text-white/70 group-hover:text-white"></span>
                         Tableau de bord
                     </a>
                     <a href="/items" class="group flex items-center px-2 py-3 text-sm font-medium rounded-md hover:bg-white/10 transition-colors">
-                        <span class="material-icons-outlined mr-3 text-white/70 group-hover:text-white">inventory_2</span>
+                        <span class="icon-inventory-2 mr-3 text-white/70 group-hover:text-white"></span>
                         Catalogue d'articles
                     </a>
                 </div>
@@ -40,11 +40,11 @@ class DashboardSidebarView {
                     </h3>
                     <div class="mt-2 space-y-1">
                         <a href="/users" class="group flex items-center px-2 py-3 text-sm font-medium rounded-md hover:bg-white/10 transition-colors">
-                            <span class="material-icons-outlined mr-3 text-white/70 group-hover:text-white">people</span>
+                            <span class="icon-person mr-3 text-white/70 group-hover:text-white"></span>
                             Utilisateurs
                         </a>
                         <a href="/settings" class="group flex items-center px-2 py-3 text-sm font-medium rounded-md hover:bg-white/10 transition-colors">
-                            <span class="material-icons-outlined mr-3 text-white/70 group-hover:text-white">settings</span>
+                            <span class="fa fa-cog mr-3 text-white/70 group-hover:text-white"></span>
                             Paramètres
                         </a>
                     </div>
@@ -54,7 +54,7 @@ class DashboardSidebarView {
             
             <div class="mt-auto p-4 border-t border-white/10">
                 <a href="/logout" class="group flex items-center px-2 py-3 text-sm font-medium rounded-md hover:bg-white/10 transition-colors">
-                    <span class="material-icons-outlined mr-3 text-white/70 group-hover:text-white">power_settings_new</span>
+                    <span class="icon-power-settings-new mr-3 text-white/70 group-hover:text-white"></span>
                     Déconnexion
                 </a>
             </div>

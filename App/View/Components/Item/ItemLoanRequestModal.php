@@ -32,7 +32,14 @@ class ItemLoanRequestModal {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <?php if (!empty($item['image_url'])): ?>
-                                <img src="/<?= htmlspecialchars($item['image_url']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="rounded-lg w-full object-cover max-h-64">
+                                <?php 
+                                    // S'assurer que l'URL de l'image a le bon préfixe
+                                    $imagePath = $item['image_url'];
+                                    if (strpos($imagePath, 'https://') !== 0 && strpos($imagePath, '/') === false) {
+                                        $imagePath = '/public/img/items/' . $imagePath;
+                                    }
+                                ?>
+                                <img src="<?= htmlspecialchars($imagePath) ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="rounded-lg w-full object-cover max-h-64">
                             <?php else: ?>
                                 <div class="bg-gray-200 rounded-lg w-full h-64 flex items-center justify-center">
                                     <span class="material-icons-outlined text-gray-400 text-5xl">image_not_supported</span>

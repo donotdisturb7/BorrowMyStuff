@@ -93,4 +93,19 @@ $container->set(LoanModel::class, function () {
     return new LoanModel();
 });
 
+// Register Cache Service
+$container->set(\App\Services\CacheService::class, function () {
+    return new \App\Services\CacheService();
+});
+
+// Register Auth Middleware
+$container->set(\App\Middleware\AuthMiddleware::class, function () {
+    return new \App\Middleware\AuthMiddleware();
+});
+
+// Register Rate Limiter
+$container->set(\App\Middleware\RateLimiter::class, function () {
+    return new \App\Middleware\RateLimiter();
+});
+
 App::setContainer($container);

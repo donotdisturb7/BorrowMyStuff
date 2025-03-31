@@ -7,6 +7,13 @@ use App\View\Components\Dashboard\DashboardSidebarView;
 
 class LayoutView {
     /**
+     * Helper function pour simplifier htmlspecialchars
+     */
+    private static function h($text) {
+        return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
      * Affiche la mise en page principale
      * 
      * @param string $title Titre de la page
@@ -37,11 +44,12 @@ class LayoutView {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Plateforme de gestion de prêts d'objets entre utilisateurs">
-    <title><?= htmlspecialchars($title) ?> | BorrowMyStuff</title>
+    <title><?= self::h($title) ?> | BorrowMyStuff</title>
     
     <!-- Polices -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Two+Tone|Material+Icons+Round|Material+Icons+Sharp" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -64,17 +72,33 @@ class LayoutView {
     <!-- CSS Global -->
     <link rel="stylesheet" href="/public/css/global.css">
     
+    <!-- CSS Icônes -->
+    <link rel="stylesheet" href="/public/css/icons.css">
+    
     <!-- Fichiers CSS additionnels -->
     <?php foreach ($cssFiles as $cssFile): ?>
-        <link rel="stylesheet" href="<?= htmlspecialchars($cssFile) ?>">
+        <link rel="stylesheet" href="<?= self::h($cssFile) ?>">
     <?php endforeach; ?>
     
     <!-- Favicon -->
     <link rel="icon" href="/public/favicon.ico" type="image/x-icon">
 </head>
-<body class="<?= htmlspecialchars($bodyClass) ?>">
+<body class="<?= self::h($bodyClass) ?>">
     <?php if ($showNavbar): ?>
         <?= NavbarView::render($user) ?>
+    <?php endif; ?>
+
+    <!-- Affichage des notifications -->
+    <?php if (isset($_SESSION['notification'])): ?>
+        <?php 
+            $notification = $_SESSION['notification'];
+            echo \App\View\Components\Common\NotificationView::render(
+                $notification['message'] ?? '',
+                $notification['type'] ?? 'info'
+            );
+            // Supprimer la notification pour qu'elle ne s'affiche qu'une fois
+            unset($_SESSION['notification']);
+        ?>
     <?php endif; ?>
 
     <!-- Contenu principal -->
@@ -137,6 +161,9 @@ class LayoutView {
             });
         });
     </script>
+    
+    <!-- Script de confirmation personnalisée -->
+    <script src="/public/js/custom-confirm.js"></script>
     
     <!-- Scripts additionnels -->
     <?php foreach ($scripts as $script): ?>

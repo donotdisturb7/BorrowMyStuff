@@ -1,0 +1,66 @@
+/* Solution de contournement pour les icônes Material manquantes */
+
+/* Icônes mentionnées par l'utilisateur */
+.icon-today::before {
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  content: "\f073"; /* fa-calendar */
+}
+
+.icon-handshake::before {
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  content: "\f2b5"; /* fa-handshake */
+}
+
+.icon-power-settings-new::before {
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  content: "\f011"; /* fa-power-off */
+}
+
+.icon-inventory-2::before {
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  content: "\f49e"; /* fa-box */
+}
+
+.icon-person::before {
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  content: "\f007"; /* fa-user */
+}
+
+.icon-arrow-drop-down::before {
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  content: "\f0d7"; /* fa-caret-down */
+}
+
+.icon-dashboard::before {
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  content: "\f0e4"; /* fa-dashboard */
+}
+
+.icon-home::before {
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  content: "\f015"; /* fa-home */
+}
+
+.icon-add-circle::before {
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  content: "\f055"; /* fa-plus-circle */
+}
+
+/* Style de base */
+[class^="icon-"] {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  vertical-align: middle;
+} 

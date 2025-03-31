@@ -1,22 +1,28 @@
 <?php
 namespace App\View\Item;
 
-use App\View\Components\LayoutView;
+use App\View\Components\Layout\LayoutView;
 use App\View\Components\NavbarView;
-use App\View\Components\SearchBarView;
 use App\View\Components\ItemGridView;
 use App\View\Components\SectionTitleView;
 use App\View\Components\LoanRequestModalView;
 
 class ItemView {
     /**
+     * Helper function pour simplifier htmlspecialchars
+     */
+    private static function h($text) {
+        return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
      * Affiche la liste des objets
      * 
      * @param array $items Tableau des objets à afficher
-     * @param string|null $searchQuery Requête de recherche si présente
+     * @param array|null $pagination Données de pagination
      * @return string Contenu HTML
      */
-    public static function render($items = [], $searchQuery = null) {
+    public static function render($items = [], $pagination = null) {
         // Prepare user data for navbar
         $user = [
             'isAuthenticated' => isset($_SESSION['authenticated']),
@@ -28,15 +34,19 @@ class ItemView {
         ob_start();
         
         // Section title
-        echo SectionTitleView::render(
-            isset($searchQuery) ? 'Résultats de recherche pour : "' . htmlspecialchars($searchQuery) . '"' : 'Articles disponibles'
-        );
-        
-        // Search bar
-        echo SearchBarView::render($searchQuery, 'Rechercher des articles...', '/items/search');
+        echo SectionTitleView::render('Articles disponibles');
         
         // Items grid
         echo ItemGridView::render($items, false, 'Aucun article trouvé.');
+        
+        // Pagination
+        if ($pagination) {
+            echo \App\View\Components\PaginationView::render(
+                $pagination['currentPage'], 
+                $pagination['totalPages'], 
+                $_SERVER['REQUEST_URI'] ? strtok($_SERVER['REQUEST_URI'], '?') : '/items'
+            );
+        }
         
         $content = ob_get_clean();
         
@@ -57,10 +67,10 @@ class ItemView {
      * Render items list for admin users with management options
      *
      * @param array $items Array of items to display
-     * @param string|null $searchQuery Search query if any
+     * @param array|null $pagination Données de pagination
      * @return string HTML content
      */
-    public static function renderAdmin($items, $searchQuery = null) {
+    public static function renderAdmin($items, $pagination = null) {
         // Prepare user data for navbar
         $user = [
             'isAuthenticated' => true,
@@ -71,23 +81,26 @@ class ItemView {
         // Build the main content
         ob_start();
         
-        // Admin header with add button and search
+        // Admin header with add button
         echo '<div class="mb-8">';
-        echo SectionTitleView::render(
-            isset($searchQuery) ? 'Résultats de recherche pour : "' . htmlspecialchars($searchQuery) . '"' : 'Gestion des articles'
-        );
+        echo SectionTitleView::render('Gestion des articles');
         
         // Add new item button
         echo '<div class="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0 mb-6">';
         echo '<a href="/dashboard?tab=add-item" class="bg-black text-white px-4 py-2 inline-block rounded-md">Ajouter un nouvel article</a>';
         echo '</div>';
         
-        // Search bar
-        echo SearchBarView::render($searchQuery, 'Rechercher des articles...', '/items/search');
-        echo '</div>';
-        
         // Items grid
         echo ItemGridView::render($items, true, 'Aucun article trouvé. Cliquez sur "Ajouter un nouvel article" pour commencer.');
+        
+        // Pagination
+        if ($pagination) {
+            echo \App\View\Components\PaginationView::render(
+                $pagination['currentPage'], 
+                $pagination['totalPages'], 
+                $_SERVER['REQUEST_URI'] ? strtok($_SERVER['REQUEST_URI'], '?') : '/items'
+            );
+        }
         
         $content = ob_get_clean();
         
@@ -138,16 +151,23 @@ class ItemView {
         <div class="max-w-4xl mx-auto px-4 py-8">
             <!-- Breadcrumb -->
             <div class="text-sm text-gray-500 mb-6">
-                <a href="/items" class="hover:underline">Articles</a> &gt; <?= htmlspecialchars($item['name']) ?>
+                <a href="/items" class="hover:underline">Articles</a> &gt; <?= self::h($item['name']) ?>
             </div>
             
             <div class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                 <div class="md:flex">
                     <!-- Image -->
                     <div class="md:w-1/2">
-                        <?php if (!empty($item['image']) || !empty($item['image_url'])): ?>
-                            <img src="/<?= htmlspecialchars($item['image'] ?? $item['image_url']) ?>" 
-                                 alt="<?= htmlspecialchars($item['name']) ?>" 
+                        <?php if (!empty($item['image_url'])): ?>
+                            <?php 
+                                // S'assurer que l'URL de l'image a le bon préfixe
+                                $imagePath = $item['image_url'];
+                                if (strpos($imagePath, '/') === false) {
+                                    $imagePath = '/public/img/items/' . $imagePath;
+                                }
+                            ?>
+                            <img src="<?= self::h($imagePath) ?>" 
+                                 alt="<?= self::h($item['name']) ?>" 
                                  class="w-full h-64 md:h-full object-cover">
                         <?php else: ?>
                             <div class="h-64 md:h-full bg-gray-100 flex items-center justify-center">
@@ -159,7 +179,7 @@ class ItemView {
                     <!-- Item details -->
                     <div class="md:w-1/2 p-6">
                         <div class="flex justify-between items-start">
-                            <h1 class="text-2xl font-bold"><?= htmlspecialchars($item['name']) ?></h1>
+                            <h1 class="text-2xl font-bold"><?= self::h($item['name']) ?></h1>
                             
                             <?php if (!empty($item['category'])): ?>
                                 <?= \App\View\Components\BadgeView::render($item['category']) ?>
@@ -175,12 +195,12 @@ class ItemView {
                         
                         <div class="mt-6">
                             <h2 class="text-lg font-semibold mb-2">Description</h2>
-                            <p class="text-gray-700"><?= nl2br(htmlspecialchars($item['description'])) ?></p>
+                            <p class="text-gray-700"><?= nl2br(self::h($item['description'])) ?></p>
                         </div>
                         
                         <div class="mt-6 text-sm text-gray-500">
-                            <p>Ajouté par: <?= htmlspecialchars($item['owner_name'] ?? 'Inconnu') ?></p>
-                            <p>Ajouté le: <span class=""><?= $item['created_at'] ?></span></p>
+                            <p>Ajouté par: <?= self::h($item['owner_name'] ?? 'Inconnu') ?></p>
+                            <p>Ajouté le: <span class=""><?= self::h($item['created_at']) ?></span></p>
                         </div>
                         
                         <!-- Action buttons -->
@@ -189,13 +209,14 @@ class ItemView {
                                 <a href="/items/<?= $item['id'] ?>/edit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800">
                                     Modifier
                                 </a>
-                                <form action="/items/<?= $item['id'] ?>/delete" method="POST" class="inline-block" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet article?');">
-                                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                                <form action="/items/<?= $item['id'] ?>/delete" method="POST" class="inline-block">
+                                    <input type="hidden" name="csrf_token" value="<?= self::h($_SESSION['csrf_token']) ?>">
+                                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700" data-confirm="Êtes-vous sûr de vouloir supprimer cet article?">
                                         Supprimer
                                     </button>
                                 </form>
                             <?php elseif (isset($_SESSION['authenticated']) && $item['available']): ?>
-                                <button onclick="openLoanRequestModal(<?= $item['id'] ?>, '<?= addslashes(htmlspecialchars($item['name'])) ?>')" 
+                                <button onclick="openLoanRequestModal(<?= $item['id'] ?>, '<?= addslashes(self::h($item['name'])) ?>')" 
                                         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800">
                                     Emprunter
                                 </button>
@@ -216,22 +237,21 @@ class ItemView {
         
         // Add loan request modal for authenticated non-admin users if item is available
         if (isset($_SESSION['authenticated']) && $_SESSION['role'] !== 'admin' && $item['available']) {
-            $scripts[] = '<script src="/js/loan-request.js"></script>';
+            $scripts[] = '<script src="/public/js/loan-request.js"></script>';
             $content .= LoanRequestModalView::render();
         }
         
         // Render the complete layout
-        return LayoutView::render(htmlspecialchars($item['name']) . ' | Catalogue', $content, $user, $scripts);
+        return LayoutView::render(self::h($item['name']) . ' | Catalogue', $content, $user, $scripts);
     }
 
     /**
      * Affiche la liste des objets en mode grille
      * 
      * @param array $items Tableau des objets à afficher
-     * @param string|null $searchQuery Requête de recherche si présente
      * @return string Contenu HTML
      */
-    public static function renderGrid($items = [], $searchQuery = null) {
+    public static function renderGrid($items = []) {
         // Implementation of renderGrid method
     }
 

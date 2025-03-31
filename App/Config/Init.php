@@ -56,7 +56,7 @@ function initializeDatabase() {
             `request_date` DATE NOT NULL,
             `start_date` DATE NOT NULL,
             `end_date` DATE NOT NULL,
-            `status` ENUM('pending', 'accepted', 'rejected') NOT NULL DEFAULT 'pending',
+            `status` ENUM('pending', 'accepted', 'rejected', 'returned', 'cancelled') NOT NULL DEFAULT 'pending',
             `admin_notes` TEXT,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (item_id) REFERENCES items(id),

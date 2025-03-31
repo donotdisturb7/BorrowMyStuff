@@ -89,10 +89,16 @@ class LoanController {
         );
         
         if ($result) {
-            $_SESSION['loan_success'] = 'Votre demande de prêt a été envoyée avec succès.';
+            $_SESSION['notification'] = [
+                'type' => 'success',
+                'message' => 'Votre demande de prêt a été envoyée avec succès.'
+            ];
             header('Location: /dashboard');
         } else {
-            $_SESSION['loan_errors'] = ['Une erreur est survenue lors de la création de votre demande.'];
+            $_SESSION['notification'] = [
+                'type' => 'error',
+                'message' => 'Une erreur est survenue lors de la création de votre demande.'
+            ];
             header('Location: /items/' . $itemId);
         }
         exit;
@@ -108,29 +114,57 @@ class LoanController {
             exit;
         }
         
-        // Get the loan
+        // Validate CSRF token
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            $_SESSION['notification'] = [
+                'message' => 'Action non autorisée - token CSRF invalide',
+                'type' => 'error'
+            ];
+            header('Location: /dashboard');
+            exit;
+        }
+        
+        // Get loan details
         $loan = $this->loanModel->getLoanById($id);
         
-        // Make sure the user owns this loan request
-        if (!$loan || $loan['requester_id'] != $_SESSION['user_id']) {
+        if (!$loan) {
+            $_SESSION['notification'] = [
+                'message' => 'Demande de prêt introuvable',
+                'type' => 'error'
+            ];
             header('Location: /dashboard');
             exit;
         }
         
-        // Only pending loans can be cancelled
-        if ($loan['status'] !== 'pending') {
-            $_SESSION['loan_errors'] = ['Cette demande ne peut plus être annulée car elle a déjà été traitée.'];
+        // Check user permissions
+        $userId = $_SESSION['user_id'];
+        
+        // Normal users can only cancel their own requests or for their own items
+        if ($loan['requester_id'] != $userId && $loan['owner_id'] != $userId) {
+            $_SESSION['notification'] = [
+                'message' => 'Vous n\'êtes pas autorisé à annuler cette demande de prêt',
+                'type' => 'error'
+            ];
             header('Location: /dashboard');
             exit;
         }
         
-        // Update loan status to 'cancelled'
+        // Cancel the loan
         $result = $this->loanModel->updateLoanStatus($id, 'cancelled');
         
-        if ($result) {
-            $_SESSION['loan_success'] = 'Votre demande de prêt a été annulée.';
+        if ($result['success']) {
+            // Update the item's availability
+            $this->itemModel->updateItemAvailability($loan['item_id'], true);
+            
+            $_SESSION['notification'] = [
+                'message' => 'La demande de prêt a été annulée avec succès',
+                'type' => 'success'
+            ];
         } else {
-            $_SESSION['loan_errors'] = ['Une erreur est survenue lors de l\'annulation de votre demande.'];
+            $_SESSION['notification'] = [
+                'message' => 'Erreur lors de l\'annulation de la demande de prêt',
+                'type' => 'error'
+            ];
         }
         
         header('Location: /dashboard');
@@ -162,9 +196,9 @@ class LoanController {
         
         // Only accepted loans can be marked as returned
         if ($loan['status'] !== 'accepted') {
-            $_SESSION['alert'] = [
+            $_SESSION['notification'] = [
                 'type' => 'error',
-                'message' => 'Ce prêt ne peut pas être marqué comme retourné.'
+                'message' => 'Seuls les prêts acceptés peuvent être marqués comme retournés.'
             ];
             header('Location: /dashboard');
             exit;
@@ -173,15 +207,20 @@ class LoanController {
         // Update loan status to 'returned'
         $result = $this->loanModel->updateLoanStatus($id, 'returned');
         
-        if ($result) {
-            $_SESSION['alert'] = [
-                'type' => 'success',
-                'message' => 'Le prêt a été marqué comme retourné avec succès.'
+        if ($result['success']) {
+            // Update item availability
+            $this->itemModel->updateItemAvailability($loan['item_id'], true);
+            
+            $_SESSION['notification'] = [
+                'message' => 'L\'objet a été marqué comme retourné avec succès.',
+                'type' => 'success'
             ];
         } else {
-            $_SESSION['alert'] = [
-                'type' => 'error',
-                'message' => 'Une erreur est survenue lors du marquage du prêt comme retourné.'
+            $_SESSION['notification'] = [
+                'message' => isset($result['error']) ? 
+                    'Erreur : ' . $result['error'] : 
+                    'Une erreur est survenue lors du retour de l\'objet.',
+                'type' => 'error'
             ];
         }
         

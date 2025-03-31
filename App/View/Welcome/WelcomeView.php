@@ -116,18 +116,12 @@ class WelcomeView {
                 <div class="order-2 md:order-1">
                     <h3 class="text-3xl font-light mb-8">Une expérience de recherche intuitive</h3>
                     <ul class="space-y-6">
-                        <li class="flex items-start">
-                            <span class="material-icons-outlined text-3xl text-black mr-4">search</span>
-                            <span class="text-lg font-light leading-relaxed">Barre de recherche intelligente pour trouver rapidement ce dont vous avez besoin</span>
-                        </li>
+
                         <li class="flex items-start">
                             <span class="material-icons-outlined text-3xl text-black mr-4">grid_view</span>
                             <span class="text-lg font-light leading-relaxed">Affichage en grille des objets disponibles avec images et détails</span>
                         </li>
-                        <li class="flex items-start">
-                            <span class="material-icons-outlined text-3xl text-black mr-4">filter_alt</span>
-                            <span class="text-lg font-light leading-relaxed">Filtres avancés pour affiner votre recherche</span>
-                        </li>
+           
                         <li class="flex items-start">
                             <span class="material-icons-outlined text-3xl text-black mr-4">info</span>
                             <span class="text-lg font-light leading-relaxed">Détails complets de chaque objet en un clic</span>

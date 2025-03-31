@@ -25,14 +25,19 @@ class ItemController {
     }
     
     public function index() {
-        $items = $this->itemModel->getAllItems();
+        // Récupérer la page actuelle depuis la requête
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        if ($page < 1) $page = 1;
+        
+        // Récupérer les éléments paginés
+        $result = $this->itemModel->getPaginatedItems($page, 12); // 12 éléments par page
         
         if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
             // Admin view with management options
-            echo ItemView::renderAdmin($items);
+            echo ItemView::renderAdmin($result['items'], null, $result['pagination']);
         } else {
             // Regular user view (just displaying items)
-            echo ItemView::render($items);
+            echo ItemView::render($result['items'], null, $result['pagination']);
         }
     }
     
@@ -54,7 +59,8 @@ class ItemController {
             exit;
         }
         
-        echo ItemFormView::render();
+        $categories = $this->itemModel->getCategories();
+        echo ItemFormView::render(null, [], $categories);
     }
     
     public function store() {
@@ -87,20 +93,28 @@ class ItemController {
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             // Vérification stricte du type de fichier
             $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            $maxSize = 5 * 1024 * 1024; // 5MB
+            $maxSize = 2 * 1024 * 1024; // 2MB
             
             $fileInfo = finfo_open(FILEINFO_MIME_TYPE);
             $detectedType = finfo_file($fileInfo, $_FILES['image']['tmp_name']);
             finfo_close($fileInfo);
             
             if (!in_array($detectedType, $allowedTypes)) {
+                $_SESSION['notification'] = [
+                    'message' => 'Le fichier doit être une image (JPEG, PNG, GIF ou WEBP).',
+                    'type' => 'error'
+                ];
                 $_SESSION['form_errors'] = ['Le fichier doit être une image (JPEG, PNG, GIF ou WEBP).'];
                 header('Location: /dashboard?tab=add-item');
                 exit;
             }
             
             if ($_FILES['image']['size'] > $maxSize) {
-                $_SESSION['form_errors'] = ['L\'image ne doit pas dépasser 5 Mo.'];
+                $_SESSION['notification'] = [
+                    'message' => 'L\'image ne doit pas dépasser 2 Mo.',
+                    'type' => 'error'
+                ];
+                $_SESSION['form_errors'] = ['L\'image ne doit pas dépasser 2 Mo.'];
                 header('Location: /dashboard?tab=add-item');
                 exit;
             }
@@ -136,7 +150,8 @@ class ItemController {
                     exit;
                 }
                 
-                $image = $uploadPath;
+                // Stocke uniquement le chemin relatif dans la base de données
+                $image = $fileName;
             } else {
                 $_SESSION['form_errors'] = ['Échec du téléchargement de l\'image.'];
                 header('Location: /dashboard?tab=add-item');
@@ -155,11 +170,21 @@ class ItemController {
             $_SESSION['user_id'],
             $category,
             $image,
-            isset($_POST['available']) && $_POST['available'] == '1'
+            isset($_POST['available']) ? 1 : 0  // Conversion explicite en entier
         );
         
         if ($result['success']) {
-            header('Location: /dashboard');
+            // Ajouter un message de succès dans la session avec un nom spécifique pour le dashboard
+            $_SESSION['notification'] = [
+                'message' => 'L\'objet a été ajouté avec succès.',
+                'type' => 'success'
+            ];
+            
+            // Ajouter également dans loan_success pour être sûr que le message s'affiche
+            $_SESSION['loan_success'] = 'L\'objet a été ajouté avec succès.';
+            
+            // Rediriger avec un paramètre pour forcer l'affichage
+            header('Location: /dashboard?success=true');
         } else {
             // Stocker les erreurs dans la session
             $_SESSION['form_errors'] = ['Échec de la création de l\'objet. Veuillez réessayer.'];
@@ -176,13 +201,13 @@ class ItemController {
         }
         
         $item = $this->itemModel->getItemById($id);
-        
         if (!$item) {
             header('Location: /items');
             exit;
         }
         
-        echo ItemFormView::render($item);
+        $categories = $this->itemModel->getCategories();
+        echo ItemFormView::render($item, [], $categories);
     }
     
     public function update($id) {
@@ -226,27 +251,35 @@ class ItemController {
             'name' => $name,
             'description' => $description,
             'category' => $category,
-            'available' => isset($_POST['available']) && $_POST['available'] == '1'
+            'available' => isset($_POST['available']) ? 1 : 0  
         ];
         
         // Process image upload if available
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             // Vérification stricte du type de fichier
             $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            $maxSize = 5 * 1024 * 1024; // 5MB
+            $maxSize = 2 * 1024 * 1024; // 2MB
             
             $fileInfo = finfo_open(FILEINFO_MIME_TYPE);
             $detectedType = finfo_file($fileInfo, $_FILES['image']['tmp_name']);
             finfo_close($fileInfo);
             
             if (!in_array($detectedType, $allowedTypes)) {
+                $_SESSION['notification'] = [
+                    'message' => 'Le fichier doit être une image (JPEG, PNG, GIF ou WEBP).',
+                    'type' => 'error'
+                ];
                 $_SESSION['form_errors'] = ['Le fichier doit être une image (JPEG, PNG, GIF ou WEBP).'];
                 header('Location: /items/' . $id . '/edit');
                 exit;
             }
             
             if ($_FILES['image']['size'] > $maxSize) {
-                $_SESSION['form_errors'] = ['L\'image ne doit pas dépasser 5 Mo.'];
+                $_SESSION['notification'] = [
+                    'message' => 'L\'image ne doit pas dépasser 2 Mo.',
+                    'type' => 'error'
+                ];
+                $_SESSION['form_errors'] = ['L\'image ne doit pas dépasser 2 Mo.'];
                 header('Location: /items/' . $id . '/edit');
                 exit;
             }
@@ -283,11 +316,15 @@ class ItemController {
                 }
                 
                 // Supprimer l'ancienne image si elle existe
-                if (!empty($item['image_url']) && file_exists($item['image_url'])) {
-                    unlink($item['image_url']);
+                if (!empty($item['image_url'])) {
+                    $imagePath = 'public/img/items/' . $item['image_url'];
+                    if (file_exists($imagePath)) {
+                        unlink($imagePath);
+                    }
                 }
                 
-                $data['image_url'] = $uploadPath;
+                // Stocke uniquement le nom du fichier dans la base de données
+                $data['image_url'] = $fileName;
             } else {
                 $_SESSION['form_errors'] = ['Échec du téléchargement de l\'image.'];
                 header('Location: /items/' . $id . '/edit');
@@ -298,11 +335,19 @@ class ItemController {
         $result = $this->itemModel->updateItem($id, $data);
         
         if ($result['success']) {
-            $_SESSION['alert'] = [
+            $_SESSION['notification'] = [
                 'type' => 'success',
                 'message' => 'L\'objet a été mis à jour avec succès.'
             ];
-            header('Location: /items');
+            
+            // Rediriger vers la page d'origine si spécifiée
+            $currentPage = isset($_POST['current_page']) ? intval($_POST['current_page']) : null;
+            
+            if ($currentPage) {
+                header('Location: /items?page=' . $currentPage);
+            } else {
+                header('Location: /items');
+            }
         } else {
             $_SESSION['form_errors'] = ['Échec de la mise à jour de l\'objet.'];
             header('Location: /items/' . $id . '/edit');
@@ -311,68 +356,60 @@ class ItemController {
     }
     
     public function delete($id) {
-        // Handle item deletion
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /items');
+        // Ensure method is POST or DELETE
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+            header('HTTP/1.1 405 Method Not Allowed');
             exit;
         }
         
-        // Vérifier que l'objet existe et appartient à l'utilisateur actuel
+        // Check for CSRF token
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            header('HTTP/1.1 403 Forbidden');
+            echo json_encode(['error' => 'Invalid CSRF token']);
+            exit;
+        }
+        
+        // Get the item details
         $item = $this->itemModel->getItemById($id);
-        if (!$item || $item['owner_id'] != $_SESSION['user_id']) {
-            $_SESSION['alert'] = [
-                'type' => 'error',
-                'message' => 'Vous n\'êtes pas autorisé à supprimer cet objet.'
-            ];
-            header('Location: /items');
+        
+        if (!$item) {
+            header('HTTP/1.1 404 Not Found');
+            echo json_encode(['error' => 'Item not found']);
             exit;
         }
         
-        // Vérifier si l'objet est actuellement prêté
-        if (!$item['available']) {
-            $_SESSION['alert'] = [
-                'type' => 'error',
-                'message' => 'Impossible de supprimer un objet actuellement prêté.'
-            ];
-            header('Location: /items');
+        // Check if user has permission to delete this item
+        // Only admins or item owners can delete items
+        if ($_SESSION['role'] !== 'admin' && $item['owner_id'] != $_SESSION['user_id']) {
+            header('HTTP/1.1 403 Forbidden');
+            echo json_encode(['error' => 'You do not have permission to delete this item']);
             exit;
         }
         
-        // Supprimer l'image associée si elle existe
-        if (!empty($item['image_url']) && file_exists($item['image_url'])) {
-            unlink($item['image_url']);
-        }
-        
+        // Delete the item
         $result = $this->itemModel->deleteItem($id);
         
         if ($result['success']) {
-            $_SESSION['alert'] = [
-                'type' => 'success',
-                'message' => 'L\'objet a été supprimé avec succès.'
+            // Delete image file if it exists
+            if (!empty($item['image_url']) && file_exists($_SERVER['DOCUMENT_ROOT'] . '/' . $item['image_url'])) {
+                unlink($_SERVER['DOCUMENT_ROOT'] . '/' . $item['image_url']);
+            }
+            
+            // Set success message and redirect
+            $_SESSION['notification'] = [
+                'message' => 'L\'objet a été supprimé avec succès.',
+                'type' => 'success'
             ];
         } else {
-            $_SESSION['alert'] = [
-                'type' => 'error',
-                'message' => 'Une erreur est survenue lors de la suppression de l\'objet.'
+            // Set error message
+            $_SESSION['notification'] = [
+                'message' => 'Erreur lors de la suppression de l\'objet: ' . ($result['error'] ?? 'Une erreur inconnue est survenue'),
+                'type' => 'error'
             ];
         }
         
+        // Redirect back to items list
         header('Location: /items');
-    }
-    
-    public function search() {
-        $query = $_GET['q'] ?? '';
-        if (empty($query)) {
-            header('Location: /items');
-            exit;
-        }
-        
-        $items = $this->itemModel->searchItems($query);
-        
-        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-            echo ItemView::renderAdmin($items, $query);
-        } else {
-            echo ItemView::render($items, $query);
-        }
+        exit;
     }
 }

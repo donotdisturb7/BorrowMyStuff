@@ -2,12 +2,12 @@
 
 ini_set('session.use_only_cookies', 1);
 ini_set('session.use_strict_mode', 1);
-ini_set('session.gc_maxlifetime', 43200); // 12 heures au lieu de 24
+ini_set('session.gc_maxlifetime', 43200); 
 session_set_cookie_params([
-    'lifetime' => 43200, // 12 heures
+    'lifetime' => 43200, 
     'domain' => $_SERVER['SERVER_NAME'],
     'path' => '/',
-    'secure' => !empty($_SERVER['HTTPS']), // Active secure=true si HTTPS est utilisé
+    'secure' => !empty($_SERVER['HTTPS']), 
     'httponly' => true,
     'samesite' => 'Lax'
 ]);
@@ -27,6 +27,9 @@ if (!isset($_SESSION['initialized'])) {
     $_SESSION['initialized'] = true;
 }
 
+// Apply rate limiting to all requests
+App\Middleware\RateLimiter::check();
+
 // Protection CSRF globale
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -45,5 +48,10 @@ if (in_array($request_method, ['POST', 'PUT', 'DELETE']) &&
         exit;
     }
 }
+
+// Initialize cache service
+$container->set(App\Services\CacheService::class, function() {
+    return new App\Services\CacheService();
+});
 
 App\Routes\Router::route($request_method);

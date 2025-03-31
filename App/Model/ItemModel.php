@@ -117,13 +117,15 @@ class ItemModel {  // Fixed capitalization
 
     public function createItem($name, $description, $owner_id, $category = null, $image = null, $available = true) {
         try {
+            // Ne pas modifier le chemin de l'image - gardons uniquement le nom du fichier
+            
             $stmt = $this->db->prepare("INSERT INTO items (name, description, owner_id, category, image_url, available, created_at) 
-                                       VALUES (:name, :description, :owner_id, :category, :image, :available, NOW())");
+                                       VALUES (:name, :description, :owner_id, :category, :image_url, :available, NOW())");
             $stmt->bindParam(':name', $name);
             $stmt->bindParam(':description', $description);
             $stmt->bindParam(':owner_id', $owner_id, PDO::PARAM_INT);
             $stmt->bindParam(':category', $category);
-            $stmt->bindParam(':image', $image);
+            $stmt->bindParam(':image_url', $image);
             $stmt->bindParam(':available', $available, PDO::PARAM_BOOL);
             
             $success = $stmt->execute();
@@ -148,6 +150,8 @@ class ItemModel {  // Fixed capitalization
             $updates = [];
             $params = [':id' => $id];
             
+            // Ne pas modifier le chemin de l'image - gardons uniquement le nom du fichier
+            
             foreach ($data as $key => $value) {
                 if (in_array($key, $allowedFields)) {
                     $updates[] = "$key = :$key";
@@ -169,35 +173,53 @@ class ItemModel {  // Fixed capitalization
         }
     }
 
-    public function deleteItem($id) {
+    /**
+     * Vérifie si un item peut être supprimé
+     * @param int $id ID de l'item
+     * @return array ['can_delete' => bool, 'reason' => string|null]
+     */
+    private function canDeleteItem($id) {
         try {
-            $stmt = $this->db->prepare("DELETE FROM items WHERE id = :id");
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            return ['success' => $stmt->execute()];
+            // Vérifier les demandes de prêt actives
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM demande_pret WHERE item_id = :id AND status IN ('pending', 'accepted')");
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+            if ($stmt->fetchColumn() > 0) {
+                return ['can_delete' => false, 'reason' => 'Impossible de supprimer cet objet car il a des demandes de prêt en cours.'];
+            }
+
+            // Vérifier les prêts actifs
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM prets WHERE item_id = :id AND status = 'ongoing'");
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+            if ($stmt->fetchColumn() > 0) {
+                return ['can_delete' => false, 'reason' => 'Impossible de supprimer cet objet car il est actuellement en cours de prêt.'];
+            }
+
+            return ['can_delete' => true, 'reason' => null];
         } catch (PDOException $e) {
             error_log("Database error: " . $e->getMessage());
-            return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
+            return ['can_delete' => false, 'reason' => 'Une erreur est survenue lors de la vérification.'];
         }
     }
 
-    public function searchItems($query) {
+    public function deleteItem($id) {
         try {
-            $searchTerm = "%$query%";
-            $stmt = $this->db->prepare("SELECT i.*, u.username as owner_name FROM items i
-                                       LEFT JOIN users u ON i.owner_id = u.id
-                                       WHERE i.name LIKE :search 
-                                       OR i.description LIKE :search
-                                       OR i.category LIKE :search
-                                       ORDER BY i.created_at DESC");
-            $stmt->bindParam(':search', $searchTerm);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Vérifier d'abord si l'item peut être supprimé
+            $check = $this->canDeleteItem($id);
+            if (!$check['can_delete']) {
+                return ['success' => false, 'error' => $check['reason']];
+            }
+
+            $stmt = $this->db->prepare("DELETE FROM items WHERE id = :id");
+            $stmt->bindParam(':id', $id);
+            return ['success' => $stmt->execute()];
         } catch (PDOException $e) {
             error_log("Database error: " . $e->getMessage());
-            return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'Une erreur est survenue lors de la suppression.'];
         }
     }
-    
+
     /**
      * Récupère toutes les catégories distinctes des objets
      * @return array Liste des catégories

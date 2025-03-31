@@ -26,46 +26,57 @@ class DashboardController {
     }
 
     public function index() {
-        // Get active tab from query string
+        // Get tab from query string
         $activeTab = $_GET['tab'] ?? 'dashboard';
         
-        // Gather dashboard data
+        // Get user data
         $userData = [
-            'username' => $_SESSION['username'] ?? 'User',
-            'role' => $_SESSION['role'] ?? 'user',
-            'user_id' => $_SESSION['user_id'] ?? 0,
+            'user_id' => $_SESSION['user_id'],
+            'username' => $_SESSION['username'],
+            'role' => $_SESSION['role']
         ];
         
-        // Get different data based on user role
-        if ($userData['role'] === 'admin') {
+        // Get categories for the add item form
+        $categories = $this->itemModel->getCategories();
+        
+        // Check for form errors in session
+        $errors = $_SESSION['form_errors'] ?? [];
+        unset($_SESSION['form_errors']);
+        
+        // Check for success message in URL
+        if (isset($_GET['success']) && $_GET['success'] === 'true' && !isset($_SESSION['notification'])) {
+            $_SESSION['notification'] = [
+                'message' => 'L\'opération a été effectuée avec succès.',
+                'type' => 'success'
+            ];
+        }
+        
+        // Check if user is admin
+        $isAdmin = isset($_SESSION['role']) && ($_SESSION['role'] === 'admin');
+        
+        if ($isAdmin) {
             // Admin dashboard
-            // Récupérer uniquement les demandes de prêt en attente pour les objets appartenant à cet admin
-            $pendingLoans = $this->loanModel->getPendingLoansByOwner($userData['user_id']);
-            $allItems = $this->itemModel->getAllItems();
             
-            // Récupérer les prêts de l'administrateur (où il est emprunteur)
+        
+            $pendingLoans = $this->loanModel->getPendingLoans();
+            
+           
             $adminLoans = $this->loanModel->getLoansByBorrower($userData['user_id']);
             
-            // Récupérer les prêts actifs des items appartenant à l'administrateur
+            
             $adminItemLoans = $this->loanModel->getActiveItemLoansByOwner($userData['user_id']);
             
+            
+            $allItems = $this->itemModel->getAllItems();
+            
+           
             $stats = [
-                'totalItems' => count($allItems),
-                'pendingLoans' => count($pendingLoans),
-                'availableItems' => count(array_filter($allItems, function($item) {
+                'totalItems' => is_array($allItems) ? count($allItems) : 0,
+                'availableItems' => is_array($allItems) ? count(array_filter($allItems, function($item) {
                     return $item['available'] == 1;
-                })),
+                })) : 0,
+                'pendingLoans' => count($pendingLoans)
             ];
-            
-            // Get categories for the add item form
-            $categories = $this->itemModel->getCategories();
-            
-            // Get any errors from the session
-            $errors = [];
-            if (isset($_SESSION['form_errors'])) {
-                $errors = $_SESSION['form_errors'];
-                unset($_SESSION['form_errors']);
-            }
             
             // Render admin dashboard view
             echo DashboardView::renderAdmin([

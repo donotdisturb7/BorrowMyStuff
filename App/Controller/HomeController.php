@@ -39,29 +39,4 @@ class HomeController {
             'user' => $userData
         ]);
     }
-    
-    public function search() {
-        $query = $_GET['q'] ?? '';
-        if (empty($query)) {
-            header('Location: /');
-            exit;
-        }
-        
-        $items = $this->itemModel->searchItems($query);
-        $isAdmin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
-        
-        $userData = [
-            'isAuthenticated' => isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true,
-            'username' => $_SESSION['username'] ?? null,
-            'role' => $_SESSION['role'] ?? 'guest',
-            'userId' => $_SESSION['user_id'] ?? null
-        ];
-        
-        echo HomeView::render([
-            'items' => $items,
-            'isAdmin' => $isAdmin,
-            'user' => $userData,
-            'searchQuery' => $query
-        ]);
-    }
 }

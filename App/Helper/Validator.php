@@ -83,14 +83,14 @@ class Gender extends Rule {
 }
 
 class Password extends Rule {
-    protected $message = 'The :attribute is invalid';
+    protected $message = 'Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial';
     public function check($value): bool {
-        return !preg_match('/^[a-zA-Z0-9]+$/', $value);
+        return !preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/', $value);
     }
 }
 
 class Same extends Rule {
-    protected $message = "Passwords don't match.";
+    protected $message = "Les mots de passe ne correspondent pas.";
     public function check($value): bool {
         return $value != $_POST['password'];
     }

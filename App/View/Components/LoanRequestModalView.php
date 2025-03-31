@@ -1,6 +1,6 @@
 <?php
 
-namespace App\View\Components\Items;
+namespace App\View\Components;
 
 /**
  * Composant pour le modal de demande de prêt
@@ -57,8 +57,9 @@ class LoanRequestModalView {
         <h2 class="text-xl font-medium mb-4">Demande de prêt</h2>
         <p id="modalItemName" class="mb-4"></p>
         
-        <form id="loanRequestForm" action="/loan-request" method="POST" class="space-y-4">
+        <form id="loanRequestForm" action="/loans/request" method="POST" class="space-y-4">
             <input type="hidden" id="itemId" name="item_id">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
             
             <div>
                 <label for="startDate" class="block text-sm font-medium text-gray-700">Date de début</label>
@@ -131,36 +132,11 @@ class LoanRequestModalView {
         
         if (startDate > endDate) {
             e.preventDefault();
-            
-            // Créer une alerte personnalisée au lieu d'utiliser alert()
-            const overlay = document.createElement('div');
-            overlay.classList.add('fixed', 'inset-0', 'bg-black', 'bg-opacity-50', 'z-50', 'flex', 'items-center', 'justify-center');
-            
-            const modal = document.createElement('div');
-            modal.classList.add('bg-white', 'rounded-lg', 'p-6', 'max-w-md', 'mx-4', 'shadow-xl', 'transform', 'transition-all', 'duration-300');
-            
-            modal.innerHTML = `
-                <div class="text-center">
-                    <svg class="mx-auto mb-4 w-14 h-14 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <h3 class="mb-5 text-lg font-medium text-gray-900">La date de fin doit être après la date de début.</h3>
-                    <button type="button" id="alert-ok-btn" class="py-2 px-4 bg-black text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300">
-                        OK
-                    </button>
-                </div>
-            `;
-            
-            overlay.appendChild(modal);
-            document.body.appendChild(overlay);
-            
-            document.getElementById('alert-ok-btn').addEventListener('click', function() {
-                document.body.removeChild(overlay);
-            });
+            alert("La date de fin doit être après la date de début.");
         }
     });
 </script>
 <?php
         return ob_get_clean();
     }
-}
+} 
